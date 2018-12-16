@@ -93,15 +93,6 @@ def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
 def partir_segun(pregunta, instancias, etiquetas):
     # Esta función debe separar instancias y etiquetas según si cada instancia cumple o no con la pregunta (ver método 'cumple')
     instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen = [],[], [], []
-    mask = []
-    
-    for index, row in instancias.iterrows():
-        mask.append(pregunta.cumple(row))
-    
-    mask = pd.Series(mask)
-    #print(etiquetas)
-    #etiquetas = np.array(etiquetas)
-    
     
     etiquetas_cumplen = etiquetas[pregunta.cumple(instancias)]
     etiquetas_no_cumplen = etiquetas[~pregunta.cumple(instancias)]
@@ -121,7 +112,6 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
    
             ganancia = ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
             
-            #print('columna ', columna, ganancia)
             if ganancia > max_ganancia:
                 max_ganancia = ganancia
                 mejor_pregunta = pregunta
@@ -130,7 +120,17 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
 def predecir(arbol, x_t):
     resultado = None
     if arbol.es_hoja():
-        #print('hoja: ', arbol.cuentas)
+        return max(arbol.cuentas.items(), key=operator.itemgetter(1))[0]
+    if arbol.pregunta.cumple(x_t):
+        resultado = predecir(arbol.sub_arbol_izquierdo, x_t)
+    else:
+        resultado = predecir(arbol.sub_arbol_derecho, x_t)
+    
+    return resultado
+
+def predecir_proba(arbol, x_t):
+    resultado = None
+    if arbol.es_hoja():
         return max(arbol.cuentas.items(), key=operator.itemgetter(1))[0]
     if arbol.pregunta.cumple(x_t):
         resultado = predecir(arbol.sub_arbol_izquierdo, x_t)
@@ -147,7 +147,7 @@ class MiClasificadorArbol():
     def fit(self, X_train, y_train):
         #self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train)
         x = pd.DataFrame(X_train)
-        self.arbol = construir_arbol(x, y_train)
+        self.arbol = construir_arbol(x, pd.DataFrame(y_train))
         self.columnas = x.columns
         return self
     
@@ -159,7 +159,11 @@ class MiClasificadorArbol():
             prediction = predecir(self.arbol, x_t_df) 
             
             predictions.append(prediction)
-        return predictions
+        return np.array(predictions)
+
+    
+    def predict_proba(self, X_test):
+        return np.array([ [1-x, x] for x in self.predict(X_test)])
     
     def score(self, X_test, y_test):
         y_pred = self.predict(X_test)
@@ -167,6 +171,8 @@ class MiClasificadorArbol():
         accuracy = sum(y_i == y_j for (y_i, y_j) in zip(y_pred, y_test)) / len(y_test)
         return accuracy
         
+    def get_params(self, deep=True):
+        return {}
 
 
 def imprimir_arbol(arbol, spacing=""):
