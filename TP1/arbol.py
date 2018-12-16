@@ -77,14 +77,14 @@ def gini(etiquetas):
     
     return impureza
 
-def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
-    etiquetas = np.append(etiquetas_rama_izquierda, etiquetas_rama_derecha)
-    gini_inicial = gini(etiquetas)
+def ganancia_gini(gini_inicial, cantidad_etiquetas, etiquetas_rama_izquierda, etiquetas_rama_derecha):
+    #etiquetas = np.append(etiquetas_rama_izquierda, etiquetas_rama_derecha)
+    #gini_inicial = gini(etiquetas)
     
     gini_izq = gini(etiquetas_rama_izquierda)
     gini_der = gini(etiquetas_rama_derecha)
-    proporcion_izq = etiquetas_rama_izquierda.size / etiquetas.size
-    proporcion_der = etiquetas_rama_derecha.size / etiquetas.size
+    proporcion_izq = etiquetas_rama_izquierda.size / cantidad_etiquetas
+    proporcion_der = etiquetas_rama_derecha.size / cantidad_etiquetas
 
     ganancia_gini = gini_inicial - proporcion_izq * gini_izq - proporcion_der * gini_der
     return ganancia_gini
@@ -104,13 +104,19 @@ def partir_segun(pregunta, instancias, etiquetas):
 def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
     max_ganancia = 0
     mejor_pregunta = None
+    
+    # gini inicial
+    gini_inicial = gini(etiquetas)
+    cantidad_etiquetas = etiquetas.size
+    
     for columna in instancias.columns:
         for valor in set(instancias[columna]):
+
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
             _, etiquetas_rama_izquierda, _, etiquetas_rama_derecha = partir_segun(pregunta, instancias, etiquetas)
    
-            ganancia = ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
+            ganancia = ganancia_gini(gini_inicial, cantidad_etiquetas, etiquetas_rama_izquierda, etiquetas_rama_derecha)
             
             if ganancia > max_ganancia:
                 max_ganancia = ganancia
